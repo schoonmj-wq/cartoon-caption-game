@@ -282,7 +282,7 @@ export default function App() {
   const round       = game?.round ?? 0;
   const totalRounds = game?.totalRounds ?? 3;
   const currentCartoon = game?.cartoonOrder
-    ? CARTOONS.find(c => c.id === game.cartoonOrder[round]) || CARTOONS[0]
+    ? CARTOONS[game.cartoonOrder[round]] || CARTOONS[0]
     : CARTOONS[0];
 
   // ── Create room (host) ────────────────────────────────────────────────────
@@ -290,7 +290,7 @@ export default function App() {
     const name = nameInput.trim();
     if (!name) return;
     const code = generateRoomCode();
-    const cartoonOrder = shuffle(CARTOONS.map(c => c.id));
+    const cartoonOrder = shuffle([...Array(CARTOONS.length).keys()]);
     await set(ref(db, `rooms/${code}`), {
       host: name,
       phase: PHASE.LOBBY,
@@ -441,7 +441,7 @@ export default function App() {
     const playerList = Object.keys(game.players);
     const freshScores = {};
     playerList.forEach(p => { freshScores[p] = 0; });
-    const cartoonOrder = shuffle(CARTOONS.map(c => c.id));
+    const cartoonOrder = shuffle([...Array(CARTOONS.length).keys()]);
     await update(ref(db, `rooms/${roomCode}`), {
       phase: PHASE.LOBBY,
       round: 0,
@@ -706,11 +706,15 @@ export default function App() {
                   </button>
                 </>
               ) : (
-                <div className="card" style={{textAlign:"center",marginTop:16}}>
-                  <span className="big-icon">🔍</span>
-                  <div className="hero-text">{judge} is judging</div>
-                  <div className="muted" style={{marginTop:8}}>
-                    They're trying to figure out who wrote what<span className="waiting-dots"/>
+                <div className="card" style={{marginTop:0}}>
+                  <div className="label" style={{marginBottom:12}}>{judge} is judging — the captions so far:</div>
+                  {shuffledCaptions.map(([_writer, captionText]) => (
+                    <div key={captionText} className="caption-option" style={{cursor:"default"}}>
+                      <div className="caption-text">"{captionText}"</div>
+                    </div>
+                  ))}
+                  <div style={{fontSize:"0.78rem",color:"#5a4a30",marginTop:8,textAlign:"center"}}>
+                    Waiting for {judge} to pick a favorite<span className="waiting-dots"/>
                   </div>
                 </div>
               )}
