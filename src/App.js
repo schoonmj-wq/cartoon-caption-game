@@ -590,7 +590,7 @@ export default function App() {
               </div>
 
               <div className="cartoon-frame">
-                <div dangerouslySetInnerHTML={{__html: currentCartoon.svg}}/>
+                <img src={currentCartoon.src} alt="Cartoon" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
               </div>
 
               {amJudge ? (
@@ -646,7 +646,7 @@ export default function App() {
               </div>
 
               <div className="cartoon-frame">
-                <div dangerouslySetInnerHTML={{__html: currentCartoon.svg}}/>
+                <img src={currentCartoon.src} alt="Cartoon" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
               </div>
 
               {amJudge ? (
@@ -724,7 +724,7 @@ export default function App() {
                 <span>Round {round+1} Results</span>
               </div>
               <div className="cartoon-frame">
-                <div dangerouslySetInnerHTML={{__html: currentCartoon.svg}}/>
+                <img src={currentCartoon.src} alt="Cartoon" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
               </div>
               <div className="card">
                 <div className="label">Captions Revealed</div>
