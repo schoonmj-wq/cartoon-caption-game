@@ -246,23 +246,9 @@ export default function App() {
   const [captionInput, setCaptionInput] = useState("");
   const [submitted, setSubmitted]       = useState(false);
 
-  // ── Persist identity to localStorage ─────────────────────────────────────
-  useEffect(() => {
-    if (myName)   localStorage.setItem("cc_name", myName);
-    if (roomCode) localStorage.setItem("cc_room", roomCode);
-    localStorage.setItem("cc_host", isHost ? "true" : "false");
-  }, [myName, roomCode, isHost]);
-
-  // ── Auto-rejoin if we have saved identity and game exists ─────────────────
-  useEffect(() => {
-    if (!roomCode || !myName || game) return;
-    // game state will load via the Firebase subscription below
-    // If the player isn't in the game's player list, re-add them
-  }, []);
-
+  // ── Auto-rejoin: if game loads and we're not in player list, re-add ourselves ──
   useEffect(() => {
     if (!game || !myName) return;
-    // If we reloaded mid-game and we're not in the player list, re-add ourselves
     if (!game.players?.[myName]) {
       update(ref(db, `rooms/${roomCode}`), {
         [`players/${myName}`]: true,
@@ -336,6 +322,9 @@ export default function App() {
     setMyName(name);
     setRoomCode(code);
     setIsHost(true);
+    localStorage.setItem("cc_name", name);
+    localStorage.setItem("cc_room", code);
+    localStorage.setItem("cc_host", "true");
   }
 
   // ── Join room ─────────────────────────────────────────────────────────────
@@ -364,6 +353,9 @@ export default function App() {
     setMyName(name);
     setRoomCode(code);
     setIsHost(wasHost);
+    localStorage.setItem("cc_name", name);
+    localStorage.setItem("cc_room", code);
+    localStorage.setItem("cc_host", wasHost ? "true" : "false");
   }
 
   // ── Host: start game ──────────────────────────────────────────────────────
