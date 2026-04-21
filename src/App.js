@@ -233,7 +233,7 @@ export default function App() {
   const [roomCode, setRoomCode]   = useState("");
   const [isHost, setIsHost]       = useState(false);
   const [error, setError]         = useState("");
-  const [localPhase, setLocalPhase] = useState(PHASE.HOME); // home | joining
+  const [localPhase] = useState(PHASE.HOME);
 
   // Live game state from Firebase
   const [game, setGame] = useState(null);
@@ -275,7 +275,6 @@ export default function App() {
   const nonJudges   = players.filter(p => p !== judge);
   const amJudge     = myName === judge;
   const captions    = game?.captions || {};
-  const captionList = Object.entries(captions); // [[player, text], ...]
   const shuffledCaptions = game?.shuffledCaptions
     ? game.shuffledCaptions.map(key => [key, captions[key]])
     : [];
@@ -380,7 +379,7 @@ export default function App() {
         shuffledCaptions: shuffled,
       });
     }
-  }, [captions, game?.phase]);
+  }, [captions, game?.phase, isHost, nonJudges, roomCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Judge submits ─────────────────────────────────────────────────────────
   async function submitJudgment() {
@@ -467,7 +466,6 @@ export default function App() {
   }
 
   // ── RENDER ────────────────────────────────────────────────────────────────
-  const phase = game?.phase || localPhase;
 
   return (
     <>
