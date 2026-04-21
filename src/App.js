@@ -227,11 +227,11 @@ const S = `
 // ═════════════════════════════════════════════════════════════════════════════
 export default function App() {
   // Local player identity
-  const [myName, setMyName]       = useState("");
-  const [nameInput, setNameInput] = useState("");
-  const [roomInput, setRoomInput] = useState("");
-  const [roomCode, setRoomCode]   = useState("");
-  const [isHost, setIsHost]       = useState(false);
+  const [myName, setMyName]       = useState(() => localStorage.getItem("cc_name") || "");
+  const [nameInput, setNameInput] = useState(() => localStorage.getItem("cc_name") || "");
+  const [roomInput, setRoomInput] = useState(() => localStorage.getItem("cc_room") || "");
+  const [roomCode, setRoomCode]   = useState(() => localStorage.getItem("cc_room") || "");
+  const [isHost, setIsHost]       = useState(() => localStorage.getItem("cc_host") === "true");
   const [error, setError]         = useState("");
   const [localPhase] = useState(PHASE.HOME);
 
@@ -245,6 +245,35 @@ export default function App() {
   // Local caption input
   const [captionInput, setCaptionInput] = useState("");
   const [submitted, setSubmitted]       = useState(false);
+
+  // ── Persist identity to localStorage ─────────────────────────────────────
+  useEffect(() => {
+    if (myName)   localStorage.setItem("cc_name", myName);
+    if (roomCode) localStorage.setItem("cc_room", roomCode);
+    localStorage.setItem("cc_host", isHost ? "true" : "false");
+  }, [myName, roomCode, isHost]);
+
+  // ── Auto-rejoin if we have saved identity and game exists ─────────────────
+  useEffect(() => {
+    if (!roomCode || !myName || game) return;
+    // game state will load via the Firebase subscription below
+    // If the player isn't in the game's player list, re-add them
+  }, []);
+
+  useEffect(() => {
+    if (!game || !myName) return;
+    // If we reloaded mid-game and we're not in the player list, re-add ourselves
+    if (!game.players?.[myName]) {
+      update(ref(db, `rooms/${roomCode}`), {
+        [`players/${myName}`]: true,
+        [`scores/${myName}`]: game.scores?.[myName] ?? 0,
+      });
+    }
+    // Restore submitted state if we already have a caption this round
+    if (game.phase === PHASE.CAPTION && game.captions?.[myName]) {
+      setSubmitted(true);
+    }
+  }, [game?.phase, myName]);
 
   // ── Subscribe to game state ───────────────────────────────────────────────
   useEffect(() => {
@@ -317,15 +346,24 @@ export default function App() {
     const snap = await get(ref(db, `rooms/${code}`));
     if (!snap.exists()) { setError("Room not found. Check the code and try again."); return; }
     const data = snap.val();
-    if (data.phase !== PHASE.LOBBY) { setError("That game has already started."); return; }
-    if (Object.keys(data.players || {}).includes(name)) { setError("That name is already taken."); return; }
-    await update(ref(db, `rooms/${code}`), {
-      [`players/${name}`]: true,
-      [`scores/${name}`]: 0,
-    });
+    const existingPlayers = Object.keys(data.players || {});
+    const alreadyIn = existingPlayers.includes(name);
+
+    // Allow rejoining if already in the game
+    if (!alreadyIn && data.phase !== PHASE.LOBBY) {
+      setError("That game has already started.");
+      return;
+    }
+    if (!alreadyIn) {
+      await update(ref(db, `rooms/${code}`), {
+        [`players/${name}`]: true,
+        [`scores/${name}`]: 0,
+      });
+    }
+    const wasHost = data.host === name;
     setMyName(name);
     setRoomCode(code);
-    setIsHost(false);
+    setIsHost(wasHost);
   }
 
   // ── Host: start game ──────────────────────────────────────────────────────
@@ -465,6 +503,19 @@ export default function App() {
     });
   }
 
+  // ── Leave room ────────────────────────────────────────────────────────────
+  function leaveRoom() {
+    localStorage.removeItem("cc_name");
+    localStorage.removeItem("cc_room");
+    localStorage.removeItem("cc_host");
+    setMyName("");
+    setNameInput("");
+    setRoomInput("");
+    setRoomCode("");
+    setIsHost(false);
+    setGame(null);
+  }
+
   // ── RENDER ────────────────────────────────────────────────────────────────
 
   return (
@@ -476,13 +527,27 @@ export default function App() {
           {/* HEADER */}
           <div className="header">
             <div className="header-title">Caption Contest</div>
-            <div className="header-sub">
-              {roomCode ? `Room: ${roomCode}` : "The Party Game"}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"12px",marginTop:"2px"}}>
+              <div className="header-sub">
+                {roomCode ? `Room: ${roomCode}` : "The Party Game"}
+              </div>
+              {roomCode && (
+                <button
+                  onClick={leaveRoom}
+                  style={{
+                    background:"none",border:"none",color:"#4a3820",
+                    fontSize:"0.68rem",letterSpacing:"0.1em",textTransform:"uppercase",
+                    cursor:"pointer",padding:"2px 6px",
+                  }}
+                >
+                  Leave
+                </button>
+              )}
             </div>
           </div>
 
           {/* ── HOME ── */}
-          {!roomCode && localPhase === PHASE.HOME && (
+          {!game && !roomCode && localPhase === PHASE.HOME && (
             <>
               <div className="card" style={{marginTop:20}}>
                 <div className="label">Your Name</div>
@@ -525,6 +590,35 @@ export default function App() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* ── REJOIN SCREEN — saved session but game not loaded yet ── */}
+          {!game && roomCode && (
+            <div className="card" style={{marginTop:24,textAlign:"center"}}>
+              <span className="big-icon">🔄</span>
+              <div className="hero-text">Rejoining…</div>
+              <div className="muted" style={{marginTop:8}}>
+                Welcome back, {myName}!<br/>Reconnecting to room <strong style={{color:"#e8c87a"}}>{roomCode}</strong>
+              </div>
+              <div className="divider"/>
+              <button
+                className="btn btn-secondary"
+                style={{width:"auto",margin:"0 auto"}}
+                onClick={() => {
+                  localStorage.removeItem("cc_name");
+                  localStorage.removeItem("cc_room");
+                  localStorage.removeItem("cc_host");
+                  setMyName("");
+                  setNameInput("");
+                  setRoomInput("");
+                  setRoomCode("");
+                  setIsHost(false);
+                  setGame(null);
+                }}
+              >
+                Leave Room
+              </button>
+            </div>
           )}
 
           {/* ── LOBBY ── */}
