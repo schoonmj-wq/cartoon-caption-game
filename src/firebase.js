@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAaR_ERnMIUjfkatdk4hdbopGPtKXMP884",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: "cartoon-caption-game.firebaseapp.com",
   databaseURL: "https://cartoon-caption-game-default-rtdb.firebaseio.com",
   projectId: "cartoon-caption-game",
