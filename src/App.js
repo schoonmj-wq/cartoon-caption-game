@@ -129,7 +129,7 @@ export default function App() {
   useEffect(() => {
     if (!roomCode) return;
     const gameRef = ref(db, `rooms/${roomCode}`);
-    const unsub = onValue(gameRef, (snap) => {
+    onValue(gameRef, (snap) => {
       const data = snap.val();
       if (data) {
         setGame(data);
