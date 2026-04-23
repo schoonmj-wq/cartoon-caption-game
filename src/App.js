@@ -377,7 +377,32 @@ export default function App() {
               <div className="card" style={{marginTop:16,textAlign:"center"}}>
                 <div className="label">Room Code — Share with friends</div>
                 <div className="room-code">{roomCode}</div>
-                <div className="muted">Everyone opens the app and enters this code</div>
+                {/* QR code pointing directly to the site */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(window.location.href)}`}
+                  alt="QR Code"
+                  style={{width:160,height:160,margin:"10px auto",display:"block",borderRadius:8,border:"3px solid #3a2a14"}}
+                />
+                <div className="muted" style={{marginBottom:10}}>Scan to join, or enter the code above</div>
+                <button
+                  onClick={() => {
+                    const url = window.location.href;
+                    if (navigator.share) {
+                      navigator.share({ title: "Caption Contest", text: `Join my Caption Contest game! Room code: ${roomCode}`, url });
+                    } else {
+                      navigator.clipboard.writeText(`${url}\nRoom code: ${roomCode}`);
+                      alert("Link copied to clipboard!");
+                    }
+                  }}
+                  style={{
+                    background:"#2e1e08",border:"1px solid #4a3820",borderRadius:8,
+                    color:"#e8c87a",fontFamily:"'Lato',sans-serif",fontWeight:700,
+                    fontSize:"0.85rem",letterSpacing:"0.08em",textTransform:"uppercase",
+                    padding:"10px 20px",cursor:"pointer",
+                  }}
+                >
+                  📤 Share Link
+                </button>
               </div>
               <div className="card">
                 <div className="label">Players ({players.length}/8)</div>
